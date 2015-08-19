@@ -1,0 +1,27 @@
+html, body, main, #map-canvas {
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+  overflow: hidden;
+}
+
+.group-controls {
+  background-color: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 3px rgba(0,0,0,.5);
+  margin-top: 6px;
+}
+
+.group-controls > div {
+  color: rgb(25,25,25);
+  font-family: Roboto, Arial, sans-serif;
+  padding: 6px;
+}
+
+#group-list {
+  margin: 6px 0 6px 0;
+}
+
+#group-list label {
+  display: block;
+}
