@@ -5,17 +5,32 @@ html, body, main, #map-canvas {
   overflow: hidden;
 }
 
-.group-controls {
+.group-controls, .center-controls {
   background-color: #fff;
   border-radius: 1px;
   box-shadow: 0 0 3px rgba(0,0,0,.5);
   margin-top: 6px;
 }
 
-.group-controls > div {
+.group-controls > div,
+.center-controls > div {
   color: rgb(25,25,25);
   font-family: Roboto, Arial, sans-serif;
-  padding: 6px;
+  padding: 5px 8px;
+  cursor: default;
+}
+
+.center-controls > div {
+  display: inline-block;
+  border-right: 1px solid #ccc;
+}
+
+.center-controls > div:last-child {
+  border-right: none;
+}
+
+.center-controls > div:hover {
+  background-color: #eee;
 }
 
 #group-list {

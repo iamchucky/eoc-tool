@@ -107,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isFirst) {
       currPolygonGroup = newGroupName;
     }
-    document.getElementById('new-groupname').value = '';
 
     var l = document.createElement('input');
     l.type = 'radio';
@@ -138,25 +137,34 @@ document.addEventListener('DOMContentLoaded', function() {
     controlUI.className = 'group-controls';
     controlDiv.appendChild(controlUI);
 
-    var html = '<input type="text" id="new-groupname"></input>';
     var controlContent = document.createElement('div');
-    controlContent.innerHTML = html;
+    var explanation = document.createElement('div');
+    var html = '<span>說明:</span><ol style="margin-top:0;"><li>按新增群組</li>';
+    html += '<li>開始在地圖上劃大概的區塊</li>';
+    html += '<li>點兩下即可完成現在區塊</li>';
+    html += '<li>點"手"的圖示並點區塊邊上的點即可微調</li>';
+    html += '<li>在區塊上點一下可以選擇清除區塊或者是換群組</li>';
+    html += '<li>畫區塊之前也可先點下方群組項目來選擇下一次畫的區塊群組</li>';
+    html += '<li>若需畫下一個區塊, 請點"多邊形"圖示</li>';
+    html += '</ol><hr>';
+    explanation.innerHTML = html;
+    controlContent.appendChild(explanation);
     controlUI.appendChild(controlContent);
 
-    var addGroupButton = document.createElement('button');
+    var centerControlDiv = document.createElement('div');
+    centerControlDiv.className = 'center-controls';
+
+    var addGroupButton = document.createElement('div');
     addGroupButton.onclick = function() {
-      var newGroupName = document.getElementById('new-groupname').value;
-      addNewGroup(newGroupName);
+      var groupName = prompt('群組名稱:', '新群組');
+      if (groupName != null) {
+        addNewGroup(groupName);
+      }
     };
     addGroupButton.textContent = '新增群組';
-    controlContent.appendChild(addGroupButton);
+    centerControlDiv.appendChild(addGroupButton);
 
-    var groupList = document.createElement('form');
-    groupList.id = 'group-list';
-    controlContent.appendChild(groupList);
-
-    var fileHandleDiv = document.createElement('div');
-    var importButton = document.createElement('button');
+    var importButton = document.createElement('div');
     importButton.onclick = function() {
       // trigger file input
       var virtEvent = document.createEvent('MouseEvents');
@@ -164,14 +172,14 @@ document.addEventListener('DOMContentLoaded', function() {
       importInput.dispatchEvent(virtEvent);
     };
     importButton.textContent = '匯入';
-    fileHandleDiv.appendChild(importButton);
+    centerControlDiv.appendChild(importButton);
 
-    var exportButton = document.createElement('button');
+    var exportButton = document.createElement('div');
     exportButton.onclick = function() {
       exportToFile();
     };
     exportButton.textContent = '匯出';
-    fileHandleDiv.appendChild(exportButton);
+    centerControlDiv.appendChild(exportButton);
 
     var importInput = document.getElementById('import-file-input');
     importInput.addEventListener('click', function(e) {
@@ -188,10 +196,13 @@ document.addEventListener('DOMContentLoaded', function() {
       reader.readAsText(f);
     });
 
-    controlContent.appendChild(fileHandleDiv);
+    var groupList = document.createElement('form');
+    groupList.id = 'group-list';
+    controlContent.appendChild(groupList);
 
     controlDiv.index = 1;
     map.controls[google.maps.ControlPosition.TOP_LEFT].push(controlDiv);
+    map.controls[google.maps.ControlPosition.TOP_CENTER].push(centerControlDiv);
   }
 
   function clearAllPolygon() {
