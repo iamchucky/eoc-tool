@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var polygonGroups = {};
   var groupNames = [];
   var currPolygonGroup = null;
-  var colors = ['red', 'blue', '#0f0', 'magenta', 'cyan', 'yellow', 'black'];
+  var colors = ['ff0000', '0000ff', '00ff00', 'ff00ff', '00ffff', 'ffff00', '000000'];
 
   function initialize() {
     map = new google.maps.Map(document.getElementById('map-canvas'), {
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
       poly.groupName = currPolygonGroup;
       registerPolyClickHandler(poly);
       polygonGroups[currPolygonGroup].push(poly);
-      var c = colors[groupNames.indexOf(currPolygonGroup)];
+      var c = '#'+colors[groupNames.indexOf(currPolygonGroup)];
       poly.setOptions({ fillColor: c, strokeColor: c });
     });
 
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
       polygonGroups[lastInfoWindowPoly.groupName].push(lastInfoWindowPoly);
 
       // set color
-      var c = colors[groupNames.indexOf(currPolygonGroup)];
+      var c = '#'+colors[groupNames.indexOf(currPolygonGroup)];
       lastInfoWindowPoly.setOptions({
         strokeColor: c,
         fillColor: c
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
     l.checked = isFirst;
 
     var c = document.createElement('div');
-    var polyColor = colors[groupNames.length -1] || 'black';
+    var polyColor = '#'+colors[groupNames.length -1] || '#000000';
     c.style.cssText = 'display:inline-block; width:15px; height:1em; margin-right:5px; background-color:'+polyColor;
 
     var label = document.createElement('label');
@@ -190,8 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var f = e.target.files[0];
       var reader = new FileReader();
       reader.onload = function(result) {
-        var json = JSON.parse(result.target.result);
-        importFromFile(json);
+        importFromFile(result.target.result);
       };
       reader.readAsText(f);
     });
@@ -216,26 +215,35 @@ document.addEventListener('DOMContentLoaded', function() {
     polygonGroups = {};
   }
 
-  function importFromFile(data) {
+  function importFromFile(text) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(text, 'text/xml');
+
     // clear all
     clearAllPolygon();
     groupNames = [];
     document.getElementById('group-list').innerHTML = '';
 
-    // if success, populate
-    for (var g in data.polygons) {
-      var l = data.polygons[g]; // group
-      addNewGroup(g);
-      for (var i = 0; i < l.length; ++i) {
-        var p = l[i]; // polygon in the group
+    var folders = doc.querySelectorAll('Document > Folder');
+    for (var i = 0; i < folders.length; ++i) {
+      var f = folders[i];
+      var groupName = f.getElementsByTagName('name')[0].textContent;
+      addNewGroup(groupName);
+
+      var polys = f.getElementsByTagName('coordinates');
+      for (var j = 0; j < polys.length; ++j) {
+        var p = polys[j].textContent.replace(/\n/g, '').split(' ');
         var coords = [];
-        for (var j = 0; j < p.length; ++j) {
-          var v = p[j]; // each vertex
-          coords.push({ lat: v[0], lng: v[1] });
+        for (var k = 0; k < p.length; ++k) {
+          var v = p[k];
+          if (!v) continue;
+
+          v = v.split(',');
+          coords.push({ lat: parseFloat(v[1]), lng: parseFloat(v[0]) });
         }
-        
+
         // push the polygon
-        var c = colors[groupNames.indexOf(g)];
+        var c = '#'+colors[groupNames.indexOf(groupName)];
         var poly = new google.maps.Polygon({
           paths: coords,
           strokeColor: c,
@@ -243,10 +251,10 @@ document.addEventListener('DOMContentLoaded', function() {
           editable: true
         });
 
-        poly.groupName = g;
+        poly.groupName = groupName;
         poly.setMap(map);
         registerPolyClickHandler(poly);
-        polygonGroups[g].push(poly);
+        polygonGroups[groupName].push(poly);
       }
     }
 
@@ -254,33 +262,63 @@ document.addEventListener('DOMContentLoaded', function() {
     currPolygonGroup = groupNames[0];
   }
 
-  function exportToFile() {
-    // json object to export
-    var out = {
-      groups: groupNames,
-      polygons: {}
-    };
 
-    // save polygons object into just array of vertices
-    for (var group in polygonGroups) {
+
+  function exportToFile() {
+    var kmlHead = '<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n';
+    var styleBlock = '';
+    // loop through the groupNames to get colors
+    for (var i = 0; i < groupNames.length; ++i) {
+      var g = groupNames[i];
+      var c = colors[groupNames.indexOf(g)];
+      c = c.slice(4) + c.slice(2, 4) + c.slice(0, 2);
+      // append style to style block
+      styleBlock += '<Style id="group'+i+'" groupname="'+g+'">\n';
+      styleBlock += '\t<LineStyle>\n';
+      styleBlock += '\t\t<color>ff'+c+'</color>\n';
+      styleBlock += '\t\t<width>2</width>\n';
+      styleBlock += '\t</LineStyle>\n';
+      styleBlock += '\t<PolyStyle>\n';
+      styleBlock += '\t\t<color>7f'+c+'</color>\n';
+      styleBlock += '\t</PolyStyle>\n';
+      styleBlock += '</Style>\n';
+    }
+
+    var folderBlock = '';
+    for (var k = 0; k < groupNames.length; ++k) {
+      var group = groupNames[k];
+      folderBlock += '<Folder>\n';
+      folderBlock += '\t<name>'+group+'</name>\n';
+
       var polys = polygonGroups[group];
-      out.polygons[group] = [];
       for (var i = 0; i < polys.length; ++i) {
+        folderBlock += '\t<Placemark>\n';
+        folderBlock += '\t\t<name>placemark'+k+'_'+i+'</name>\n';
+        folderBlock += '\t\t<styleUrl>#group'+k+'</styleUrl>\n';
+        folderBlock += '\t\t<ExtendedData>\n\t\t\t<SimpleData name="groupName">'+group+'</SimpleData>\n\t\t</ExtendedData>\n';
+        folderBlock += '\t\t<Polygon>\n';
+        folderBlock += '\t\t\t<outerBoundaryIs>\n\t\t\t\t<LinearRing>\n\t\t\t\t\t<coordinates>';
         var path = polys[i].getPath().getArray();
         var p = [];
         for (var j = 0; j < path.length; ++j) {
           var v = path[j];
-          p.push([v.lat(), v.lng()]);
+          p.push(' ' + v.lng() + ',' + v.lat() + ',0');
         }
-        out.polygons[group].push(p);
+        folderBlock += p.join('\n');
+
+        folderBlock += ' </coordinates>\n\t\t\t\t</LinearRing>\n\t\t\t</outerBoundaryIs>\n';
+        folderBlock += '\t\t</Polygon>\n';
+        folderBlock += '\t</Placemark>\n';
       }
+
+      folderBlock += '</Folder>\n';
     }
 
     // blob to save file
-    var blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+    var blob = new Blob([kmlHead+styleBlock+folderBlock+'</Document>\n</kml>'], { type: 'application/xml' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.download = 'exported_data.json';
+    a.download = 'exported.kml';
     a.href = url;
     var virtEvent = document.createEvent('MouseEvents');
     virtEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
