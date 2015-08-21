@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function importDataFromFile(text) {
     document.getElementById('data-list-container').innerHTML = '';
 
+    var markerImageCache = {};
+    var markerImage;
+
     var data = JSON.parse(text);
     data = data['DataSet']['diffgr:diffgram']['NewDataSet']['CASE_SUMMARY'];
 
@@ -155,34 +158,43 @@ document.addEventListener('DOMContentLoaded', function() {
       var latLng = new google.maps.LatLng(r['Wgs84Y'], r['Wgs84X']);
       var g = getGroup(latLng);
       var groupInd = groupNames.indexOf(g);
-      var c = '#'+colors[groupInd];
+      var c = colors[groupInd];
+
+      if (!markerImageCache[c]) {
+        markerImage = new google.maps.MarkerImage('http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|'+c,
+          new google.maps.Size(21, 34),
+          new google.maps.Point(0, 0),
+          new google.maps.Point(10, 34));
+      } else {
+        markerImage = markerImageCache[c];
+      }
 
       if (g != 'none') {
         var m = new google.maps.Marker({
           position: latLng,
           map: map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            strokeColor: c,
-            strokeWeight: 4,
-            scale: 2
-          }
+          icon: markerImage
         });
         var handled = r['CaseComplete'] == 'true';
         var info = new google.maps.InfoWindow({ maxWidth: 400 });
         var contentStr = '<div id="info-content"><h3>'+r['Name']+'</h3><p>'+r['CaseLocationDescription']+'</p><p>'+r['CaseDescription']+'</p><p>'+r['CaseTime']+'</p>'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+r['PName']+'</div></div>';
-        m.addListener('click', (function(m, content) {
-          return function() {
-            info.setOptions({ content: content });
-            info.open(map, m);
-          };
-        })(m, contentStr));
         r.marker = m;
 
         if (labels.indexOf(r['PName']) < 0) {
           labels.push(r['PName']);
         }
         r.listElem = appendToDataList(r, groupInd);
+
+        var leftPane = document.getElementById('left-pane');
+        m.addListener('click', (function(m, content, listElem) {
+          return function() {
+            info.setOptions({ content: content });
+            info.open(map, m);
+
+            var rect = listElem.getBoundingClientRect();
+            leftPane.scrollTop += rect.top-10;
+          };
+        })(m, contentStr, r.listElem));
       }
       grouped[g].push(r);
     }
@@ -245,8 +257,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (groupShow[g] && (labelShow[r['PName']] || labelShow[handled])) {
           r.listElem.style.display = 'block';
+          r.marker.setOptions({ visible: true });
         } else {
           r.listElem.style.display = 'none';
+          r.marker.setOptions({ visible: false });
         }
       }
     }
