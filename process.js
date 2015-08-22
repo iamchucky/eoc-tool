@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var r = grouped[g][j];
         var handled = r['CaseComplete'] == 'true' ? '已處理':'未處理';
 
-        if (groupShow[g] && (labelShow[r['PName']] || labelShow[handled])) {
+        if (groupShow[g] && labelShow[r['PName']] && labelShow[handled]) {
           r.listElem.style.display = 'block';
           r.marker.setOptions({ visible: true });
         } else {
