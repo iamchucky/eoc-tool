@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var elem = document.createElement('div');
     elem.className = 'panel panel-default '+handledCssText+' '+caseLabel;
-    elem.innerHTML = '<div class="panel-heading">'+data['Name']+'<div style="'+groupColorCss+'"></div></div><div class="panel-body">'+data['CaseLocationDescription']+'<br>'+data['CaseDescription']+'<hr>'+data['CaseTime']+'</div><div class="panel-footer"">'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+data['PName']+'</div></div>';
+    elem.innerHTML = '<div class="panel-heading data-heading">'+data['Name']+'<div style="'+groupColorCss+'"></div></div><div class="panel-body">'+data['CaseLocationDescription']+'<br>'+data['CaseDescription']+'<hr>'+data['CaseTime']+'</div><div class="panel-footer"">'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+data['PName']+'</div></div>';
     dataListContainer.appendChild(elem);
 
     return elem;
@@ -184,6 +184,14 @@ document.addEventListener('DOMContentLoaded', function() {
           labels.push(r['PName']);
         }
         r.listElem = appendToDataList(r, groupInd);
+        r.listElem.addEventListener('click', (function(m, content) {
+          return function(e) {
+            if (!e.target.classList.contains('data-heading')) return;
+
+            info.setOptions({ content: content });
+            info.open(map, m);
+          };
+        })(m, contentStr));
 
         var leftPane = document.getElementById('left-pane');
         m.addListener('click', (function(m, content, listElem) {

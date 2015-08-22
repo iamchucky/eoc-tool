@@ -25,6 +25,14 @@ html, body, main, #map-canvas, #left-pane {
   margin: 10px 0;
 }
 
+.data-heading {
+  cursor: pointer;
+}
+
+.data-heading:hover {
+  font-weight: bold;
+}
+
 #map-canvas {
   width: 70%;
   float: left;
