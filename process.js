@@ -106,6 +106,10 @@ document.addEventListener('DOMContentLoaded', function() {
       virtEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
       importDataInput.dispatchEvent(virtEvent);
     });
+
+    window.addEventListener('resize', function() {
+      resizeLeftBottomPane();
+    });
   }
 
   function clearAllPolygon() {
@@ -136,10 +140,20 @@ document.addEventListener('DOMContentLoaded', function() {
     return elem;
   }
 
+  function resizeLeftBottomPane() {
+    var dataListContainer = document.getElementById('data-list-container');
+    var windowHeight = document.getElementById('left-pane').getBoundingClientRect().height;
+    var leftTopPane = document.getElementById('left-top-pane');
+    var leftTopPaneBound = leftTopPane.getBoundingClientRect();
+    dataListContainer.style.overflowY = 'auto';
+    dataListContainer.style.height = windowHeight - (20 + 2*leftTopPaneBound.top + leftTopPaneBound.height)+'px';
+  }
+
   var grouped = {};
   var labels = [];
   function importDataFromFile(text) {
-    document.getElementById('data-list-container').innerHTML = '';
+    var dataListContainer = document.getElementById('data-list-container');
+    dataListContainer.innerHTML = '';
 
     var markerImageCache = {};
     var markerImage;
@@ -193,14 +207,13 @@ document.addEventListener('DOMContentLoaded', function() {
           };
         })(m, contentStr));
 
-        var leftPane = document.getElementById('left-pane');
         m.addListener('click', (function(m, content, listElem) {
           return function() {
             info.setOptions({ content: content });
             info.open(map, m);
 
             var rect = listElem.getBoundingClientRect();
-            leftPane.scrollTop += rect.top-10;
+            dataListContainer.scrollTop += rect.top - dataListContainer.getBoundingClientRect().top-10;
           };
         })(m, contentStr, r.listElem));
       }
@@ -234,11 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
       appendLabel(l, 'default');
     }
 
-    for (var i = 0; i < groupNames.length; ++i) {
-      var g = groupNames[i];
-      console.log(g + ': ' + grouped[g].length);
-    }
-    console.log('none: ' + grouped['none'].length);
+    resizeLeftBottomPane();
   }
 
   function hideShowDataList() {
@@ -259,17 +268,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     for (var i = 0; i < groupNames.length; ++i) {
       var g = groupNames[i];
-      for (var j = 0; j < grouped[g].length; ++j) {
-        var r = grouped[g][j];
-        var handled = r['CaseComplete'] == 'true' ? '已處理':'未處理';
+      if (grouped[g]) {
+        for (var j = 0; j < grouped[g].length; ++j) {
+          var r = grouped[g][j];
+          var handled = r['CaseComplete'] == 'true' ? '已處理':'未處理';
 
-        if (groupShow[g] && labelShow[r['PName']] && labelShow[handled]) {
-          r.listElem.style.display = 'block';
-          r.marker.setOptions({ visible: true });
-        } else {
-          r.listElem.style.display = 'none';
-          r.marker.setOptions({ visible: false });
+          if (groupShow[g] && labelShow[r['PName']] && labelShow[handled]) {
+            r.listElem.style.display = 'block';
+            r.marker.setOptions({ visible: true });
+          } else {
+            r.listElem.style.display = 'none';
+            r.marker.setOptions({ visible: false });
+          }
         }
+      }
+
+      for (var j = 0; j < polygonGroups[g].length; ++j) {
+        var p = polygonGroups[g][j];
+        p.setOptions({ visible: groupShow[g] });
       }
     }
   }
@@ -305,13 +321,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var c = '#'+colors[groupNames.indexOf(groupName)];
         var poly = new google.maps.Polygon({
           paths: coords,
-          strokeColor: c,
+          strokeWeight: 0,
           fillColor: c,
-          editable: true
         });
 
         poly.groupName = groupName;
-        //poly.setMap(map);
+        poly.setMap(map);
         polygonGroups[groupName].push(poly);
       }
     }
@@ -320,22 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
     currPolygonGroup = groupNames[0];
   }
 
-
-
-  function exportToFile() {
-
-    /*
-    // blob to save file
-    var blob = new Blob([kmlHead+styleBlock+folderBlock+'</Document>\n</kml>'], { type: 'application/xml' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.download = 'exported.kml';
-    a.href = url;
-    var virtEvent = document.createEvent('MouseEvents');
-    virtEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
-    a.dispatchEvent(virtEvent);
-    */
-  }
 
   google.maps.event.addDomListener(window, 'load', initialize);
 }, false);
