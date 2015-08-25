@@ -163,6 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var elem = document.createElement('div');
     elem.className = 'panel panel-default '+handledCssText+' '+caseLabel;
     elem.innerHTML = '<div class="panel-heading data-heading">'+data['Name']+'<div style="'+groupColorCss+'"></div></div><div class="panel-body">'+data['CaseLocationDescription']+'<br>'+data['CaseDescription']+'<hr>'+data['CaseTime']+'</div><div class="panel-footer"">'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+data['PName']+'</div></div>';
+    if (data.group == 'none') {
+      elem.style.display = 'none';
+    }
     dataListContainer.appendChild(elem);
 
     return elem;
@@ -199,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
       var r = data[i];
       var latLng = new google.maps.LatLng(r['Wgs84Y'], r['Wgs84X']);
       var g = getGroup(latLng);
+      r.group = g;
       var groupInd = groupNames.indexOf(g);
       var c = colors[groupInd];
 
