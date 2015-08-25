@@ -86,6 +86,26 @@ document.addEventListener('DOMContentLoaded', function() {
     return input;
   }
 
+  function ajax(method, url, callback) {
+    var xmlhttp;
+    if (window.XMLHttpRequest) {
+      xmlhttp = new XMLHttpRequest();
+    } else {
+      xmlhttp = new ActiveXObject('Microsoft.XMLHTTP');
+    }
+
+    xmlhttp.onreadystatechange = function() {
+      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        if (callback) {
+          callback(xmlhttp.responseText);
+        }
+      }
+    }
+
+    xmlhttp.open(method, url, true);
+    xmlhttp.send();
+  }
+
   function registerHandlers() {
     var importPolygonInput = registerFileInputHandler('import-polygon-file-input', importPolygonFromFile);
     var importDataInput = registerFileInputHandler('import-data-file-input', importDataFromFile);
@@ -105,6 +125,14 @@ document.addEventListener('DOMContentLoaded', function() {
       var virtEvent = document.createEvent('MouseEvents');
       virtEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
       importDataInput.dispatchEvent(virtEvent);
+    });
+
+    var importDataUrlButton = document.getElementById('import-data-url-btn');
+    importDataUrlButton.addEventListener('click', function(e) {
+      var url = prompt('資料網址:', 'https://tcgbusfs.blob.core.windows.net/blobfs/GetDisasterSummary.gz');
+      if (url != null) {
+        ajax('GET', url, importDataFromFile);
+      }
     });
 
     window.addEventListener('resize', function() {
@@ -174,6 +202,10 @@ document.addEventListener('DOMContentLoaded', function() {
       var groupInd = groupNames.indexOf(g);
       var c = colors[groupInd];
 
+      if (g == 'none') {
+        c = 'CCCCCC';
+      }
+
       if (!markerImageCache[c]) {
         markerImage = new google.maps.MarkerImage('http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|'+c,
           new google.maps.Size(21, 34),
@@ -183,40 +215,39 @@ document.addEventListener('DOMContentLoaded', function() {
         markerImage = markerImageCache[c];
       }
 
-      if (g != 'none') {
-        var m = new google.maps.Marker({
-          position: latLng,
-          map: map,
-          icon: markerImage
-        });
-        var handled = r['CaseComplete'] == 'true';
-        var info = new google.maps.InfoWindow({ maxWidth: 400 });
-        var contentStr = '<div id="info-content"><h3>'+r['Name']+'</h3><p>'+r['CaseLocationDescription']+'</p><p>'+r['CaseDescription']+'</p><p>'+r['CaseTime']+'</p>'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+r['PName']+'</div></div>';
-        r.marker = m;
+      var m = new google.maps.Marker({
+        position: latLng,
+        map: map,
+        icon: markerImage,
+        visible: (g !== 'none')
+      });
+      var handled = r['CaseComplete'] == 'true';
+      var info = new google.maps.InfoWindow({ maxWidth: 400 });
+      var contentStr = '<div id="info-content"><h3>'+r['Name']+'</h3><p>'+r['CaseLocationDescription']+'</p><p>'+r['CaseDescription']+'</p><p>'+r['CaseTime']+'</p>'+(handled?'<div class="label label-success">已處理</div>':'<div class="label label-danger">未處理</div>')+'<div class="label label-default">'+r['PName']+'</div></div>';
+      r.marker = m;
 
-        if (labels.indexOf(r['PName']) < 0) {
-          labels.push(r['PName']);
-        }
-        r.listElem = appendToDataList(r, groupInd);
-        r.listElem.addEventListener('click', (function(m, content) {
-          return function(e) {
-            if (!e.target.classList.contains('data-heading')) return;
-
-            info.setOptions({ content: content });
-            info.open(map, m);
-          };
-        })(m, contentStr));
-
-        m.addListener('click', (function(m, content, listElem) {
-          return function() {
-            info.setOptions({ content: content });
-            info.open(map, m);
-
-            var rect = listElem.getBoundingClientRect();
-            dataListContainer.scrollTop += rect.top - dataListContainer.getBoundingClientRect().top-10;
-          };
-        })(m, contentStr, r.listElem));
+      if (labels.indexOf(r['PName']) < 0) {
+        labels.push(r['PName']);
       }
+      r.listElem = appendToDataList(r, groupInd);
+      r.listElem.addEventListener('click', (function(m, content) {
+        return function(e) {
+          if (!e.target.classList.contains('data-heading')) return;
+
+          info.setOptions({ content: content });
+          info.open(map, m);
+        };
+      })(m, contentStr));
+
+      m.addListener('click', (function(m, content, listElem) {
+        return function() {
+          info.setOptions({ content: content });
+          info.open(map, m);
+
+          var rect = listElem.getBoundingClientRect();
+          dataListContainer.scrollTop += rect.top - dataListContainer.getBoundingClientRect().top-10;
+        };
+      })(m, contentStr, r.listElem));
       grouped[g].push(r);
     }
 
@@ -258,22 +289,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var groupShow = {};
+    var showAllGroups = true;
     var groupElems = document.querySelectorAll('#group-list input');
     for (var i = 0; i < groupElems.length; ++i) {
       var elem = groupElems[i];
       var g = elem.parentElement.textContent;
       var checked = elem.checked;
       groupShow[g] = checked;
+      if (checked) {
+        showAllGroups = false;
+      }
     }
 
-    for (var i = 0; i < groupNames.length; ++i) {
-      var g = groupNames[i];
+    var groups = groupNames.concat(['none']);
+    for (var i = 0; i < groups.length; ++i) {
+      var g = groups[i];
       if (grouped[g]) {
         for (var j = 0; j < grouped[g].length; ++j) {
           var r = grouped[g][j];
           var handled = r['CaseComplete'] == 'true' ? '已處理':'未處理';
 
-          if (groupShow[g] && labelShow[r['PName']] && labelShow[handled]) {
+          if ((showAllGroups || groupShow[g]) && labelShow[r['PName']] && labelShow[handled]) {
             r.listElem.style.display = 'block';
             r.marker.setOptions({ visible: true });
           } else {
@@ -283,9 +319,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      for (var j = 0; j < polygonGroups[g].length; ++j) {
-        var p = polygonGroups[g][j];
-        p.setOptions({ visible: groupShow[g] });
+      if (g != 'none') {
+        for (var j = 0; j < polygonGroups[g].length; ++j) {
+          var p = polygonGroups[g][j];
+          p.setOptions({ visible: (showAllGroups || groupShow[g]) });
+        }
       }
     }
   }

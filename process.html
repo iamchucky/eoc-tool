@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
 
+    <link rel="stylesheet" href="step.min.css"></link>
     <link rel="stylesheet" href="bootstrap.min.css"></link>
     <link rel="stylesheet" href="process.css"></link>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=drawing,places"></script>
@@ -17,9 +18,27 @@
       <input type="file" id="import-data-file-input" style="display:none;" />
       <div id="left-pane">
         <div id="left-top-pane">
-          <button class="btn btn-default" id='import-polygon-file-btn'>讀取區塊KML</button>
-          <button class="btn btn-default" id='import-data-file-btn'>讀取資料檔</button>
-          <hr>
+          <div class="ui large two ordered steps">
+            <div class="step">
+              <div class="content">
+                <div class="title">KML區塊</div>
+                <div class="description">
+                  <button id="import-polygon-file-btn" class="btn btn-default">讀取檔案</button>
+                </div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="content">
+                <div class="title">資料源</div>
+                <div class="description">
+                  <button class="btn btn-default" id="import-data-file-btn">檔案</button>
+                  或
+                  <button class="btn btn-default" id="import-data-url-btn">網址</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <form id="group-list"></form>
           <div id="label-filter"></div>
           <hr>
